@@ -42,6 +42,12 @@ func NewServer(config Config) (*server.MCPServer, error) {
 		fmt.Fprintf(os.Stderr, "❌ Failed to register tools: %v\n", err)
 		return nil, fmt.Errorf("failed to register tools: %v", err)
 	}
+	
+	// Register git tools
+	if err := registerGitTools(s); err != nil {
+		fmt.Fprintf(os.Stderr, "❌ Failed to register git tools: %v\n", err)
+		return nil, fmt.Errorf("failed to register git tools: %v", err)
+	}
 	fmt.Fprintf(os.Stderr, "✅ Tools registered successfully\n")
 
 	return s, nil
