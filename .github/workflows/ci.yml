@@ -45,13 +45,15 @@ jobs:
         
     - name: Get next version
       id: version
-      uses: ietf-tools/semver-action@v1
-      with:
-        token: ${{ github.token }}
-        branch: main
+      run: |
+        CURRENT=$(git tag --list | grep -E '^v[0-9]+' | sort -V | tail -n1 || echo "")
+        NEXT=$(./bin/svu next)
+        echo "current=${CURRENT}" >> $GITHUB_OUTPUT
+        echo "next=${NEXT}" >> $GITHUB_OUTPUT
+        echo "should_release=$([[ "${CURRENT}" != "${NEXT}" ]] && echo "true" || echo "false")" >> $GITHUB_OUTPUT
         
     - name: Create release
-      if: steps.version.outputs.nextStrict != ''
+      if: steps.version.outputs.should_release == 'true'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -62,8 +64,8 @@ jobs:
         GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o tmux-mcp-server-darwin-arm64 ./cmd/tmux-mcp-server
         
         # Create GitHub release
-        gh release create ${{ steps.version.outputs.nextStrict }} \
-          --title "Release ${{ steps.version.outputs.nextStrict }}" \
+        gh release create ${{ steps.version.outputs.next }} \
+          --title "Release ${{ steps.version.outputs.next }}" \
           --notes "Automated release created from commit ${{ github.sha }}" \
           tmux-mcp-server-linux-amd64 \
           tmux-mcp-server-linux-arm64 \
