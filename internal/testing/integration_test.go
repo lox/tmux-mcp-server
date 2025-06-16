@@ -20,7 +20,9 @@ func TestTTYServerIntegration(t *testing.T) {
 	}
 
 	// Build the server binary for testing
-	projectRoot := filepath.Join("..", "..")
+	projectRoot, err := filepath.Abs(filepath.Join("..", ".."))
+	require.NoError(t, err, "Failed to get absolute project root")
+	
 	serverBinary := filepath.Join(projectRoot, "test-tmux-mcp-server")
 
 	// Build the binary
@@ -29,6 +31,12 @@ func TestTTYServerIntegration(t *testing.T) {
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, err, "Failed to build server: %s", string(output))
 	defer func() { _ = os.Remove(serverBinary) }()
+	
+	// Verify binary exists and is executable
+	info, err := os.Stat(serverBinary)
+	require.NoError(t, err, "Binary should exist at %s", serverBinary)
+	require.False(t, info.IsDir(), "Binary path should not be a directory")
+	t.Logf("Built server binary at: %s", serverBinary)
 
 	t.Run("TestToolsList", func(t *testing.T) {
 		// Create client that spawns the server

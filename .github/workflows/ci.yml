@@ -20,8 +20,11 @@ jobs:
     - name: Install tmux
       run: sudo apt-get update && sudo apt-get install -y tmux
         
-    - name: Run tests
-      run: go test -v ./...
+    - name: Run unit tests
+      run: go test -v ./internal/server/... ./internal/client/... ./internal/tmux/...
+      
+    - name: Run integration tests
+      run: go test -v ./internal/testing/...
       
     - name: Build
       run: go build -v ./...
