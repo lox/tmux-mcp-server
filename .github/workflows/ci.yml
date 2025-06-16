@@ -43,27 +43,36 @@ jobs:
       with:
         go-version: '1.24'
         
+    - name: Install svu
+      run: |
+        wget -O svu.tar.gz https://github.com/caarlos0/svu/releases/download/v1.12.0/svu_1.12.0_linux_amd64.tar.gz
+        tar -xzf svu.tar.gz
+        sudo mv svu /usr/local/bin/
+        
     - name: Check for new version
-      id: svu
-      uses: caarlos0/svu-action@v1
-      with:
-        pattern: "v[0-9]*"
+      id: version
+      run: |
+        CURRENT=$(git tag --list | grep -E '^v[0-9]+' | sort -V | tail -n1 || echo "")
+        NEXT=$(svu next --strip-prefix)
+        echo "current=${CURRENT}" >> $GITHUB_OUTPUT
+        echo "next=v${NEXT}" >> $GITHUB_OUTPUT
+        echo "should_release=$([[ "${CURRENT}" != "v${NEXT}" ]] && echo "true" || echo "false")" >> $GITHUB_OUTPUT
         
     - name: Create release
-      if: steps.svu.outputs.current != steps.svu.outputs.next
+      if: steps.version.outputs.should_release == 'true'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         # Build binaries for multiple platforms
-        GOOS=linux GOARCH=amd64 go build -o tmux-mcp-server-linux-amd64 ./cmd/tmux-mcp-server
-        GOOS=linux GOARCH=arm64 go build -o tmux-mcp-server-linux-arm64 ./cmd/tmux-mcp-server
-        GOOS=darwin GOARCH=amd64 go build -o tmux-mcp-server-darwin-amd64 ./cmd/tmux-mcp-server
-        GOOS=darwin GOARCH=arm64 go build -o tmux-mcp-server-darwin-arm64 ./cmd/tmux-mcp-server
+        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o tmux-mcp-server-linux-amd64 ./cmd/tmux-mcp-server
+        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o tmux-mcp-server-linux-arm64 ./cmd/tmux-mcp-server
+        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o tmux-mcp-server-darwin-amd64 ./cmd/tmux-mcp-server
+        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o tmux-mcp-server-darwin-arm64 ./cmd/tmux-mcp-server
         
         # Create GitHub release
-        gh release create ${{ steps.svu.outputs.next }} \
-          --title "Release ${{ steps.svu.outputs.next }}" \
-          --notes "Automated release ${{ steps.svu.outputs.next }}" \
+        gh release create ${{ steps.version.outputs.next }} \
+          --title "Release ${{ steps.version.outputs.next }}" \
+          --notes "Automated release created from commit ${{ github.sha }}" \
           tmux-mcp-server-linux-amd64 \
           tmux-mcp-server-linux-arm64 \
           tmux-mcp-server-darwin-amd64 \
