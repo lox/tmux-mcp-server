@@ -26,14 +26,11 @@ jobs:
     - name: Install tmux
       run: sudo apt-get update && sudo apt-get install -y tmux
         
-    - name: Run unit tests
-      run: go test -v ./internal/server/... ./internal/client/... ./internal/tmux/...
-      
-    - name: Run integration tests
-      run: go test -v ./internal/testing/...
+    - name: Run tests
+      run: ./bin/task test-all
       
     - name: Build
-      run: go build -v ./...
+      run: ./bin/task build
 
   release:
     runs-on: ubuntu-latest
@@ -63,11 +60,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        # Build binaries for multiple platforms
-        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o tmux-mcp-server-linux-amd64 ./cmd/tmux-mcp-server
-        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o tmux-mcp-server-linux-arm64 ./cmd/tmux-mcp-server
-        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o tmux-mcp-server-darwin-amd64 ./cmd/tmux-mcp-server
-        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o tmux-mcp-server-darwin-arm64 ./cmd/tmux-mcp-server
+        # Build cross-platform binaries
+        ./bin/task release-binaries
         
         # Create GitHub release
         gh release create ${{ steps.version.outputs.next }} \
