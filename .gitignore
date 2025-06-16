@@ -1,0 +1,18 @@
+# Binaries
+/tmux-mcp-server
+/dist
+
+# Build output (but keep hermit tools)
+/bin/tmux-mcp-server
+
+# Temporary files
+*.swp
+.*.swp
+test_integration*.txt
+test-tmux-mcp-server*
+
+# Task cache
+.task/
+
+# Logs
+*.log

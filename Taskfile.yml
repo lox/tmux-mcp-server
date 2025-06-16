@@ -1,0 +1,65 @@
+version: '3'
+
+vars:
+  BINARY_NAME: tmux-mcp-server
+  BUILD_DIR: dist
+  CMD_PATH: ./cmd/tmux-mcp-server
+  LDFLAGS: "-w -s"
+
+tasks:
+  # Default task
+  default:
+    desc: "Show available tasks"
+    cmds:
+      - task --list
+
+  # Build the server binary
+  build:
+    desc: "Build the server binary"
+    generates:
+      - "{{.BUILD_DIR}}/{{.BINARY_NAME}}"
+    sources:
+      - "cmd/**/*.go"
+      - "internal/**/*.go"
+      - "go.mod"
+      - "go.sum"
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - go build -o {{.BUILD_DIR}}/{{.BINARY_NAME}} {{.CMD_PATH}}
+
+  # Create optimized release build
+  release:
+    desc: "Create optimized release build"
+    deps: [clean]
+    cmds:
+      - mkdir -p {{.BUILD_DIR}}
+      - CGO_ENABLED=0 go build -ldflags="{{.LDFLAGS}}" -o {{.BUILD_DIR}}/{{.BINARY_NAME}} {{.CMD_PATH}}
+
+  # Run unit tests
+  test:
+    desc: "Run unit tests"
+    cmds:
+      - go test -v ./...
+
+  # Run integration tests
+  integration-test:
+    desc: "Run integration tests"
+    cmds:
+      - go test -v -timeout 30s ./internal/testing/...
+
+  # Run all tests
+  test-all:
+    desc: "Run all tests (unit + integration)"
+    deps: [test, integration-test]
+
+  # Clean build artifacts
+  clean:
+    desc: "Clean build artifacts and temporary files"
+    cmds:
+      - rm -rf {{.BUILD_DIR}}
+
+  # Lint Go code (requires golangci-lint)
+  lint:
+    desc: "Lint Go code"
+    cmds:
+      - bin/golangci-lint run
