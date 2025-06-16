@@ -194,7 +194,7 @@ func stripAnsiCodes(text string) string {
 
 // CapturePane captures the current screen content of a session by name
 func CapturePane(sessionName string) (string, error) {
-	return CapturePaneRaw(sessionName, true)
+	return CapturePaneRaw(sessionName, false)
 }
 
 // CapturePaneRaw captures screen content with optional ANSI stripping
