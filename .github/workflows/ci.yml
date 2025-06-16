@@ -43,23 +43,15 @@ jobs:
       with:
         go-version: '1.24'
         
-    - name: Install svu
-      run: |
-        wget -O svu.tar.gz https://github.com/caarlos0/svu/releases/download/v1.12.0/svu_1.12.0_linux_amd64.tar.gz
-        tar -xzf svu.tar.gz
-        sudo mv svu /usr/local/bin/
-        
-    - name: Check for new version
+    - name: Get next version
       id: version
-      run: |
-        CURRENT=$(git tag --list | grep -E '^v[0-9]+' | sort -V | tail -n1 || echo "")
-        NEXT=$(svu next --strip-prefix)
-        echo "current=${CURRENT}" >> $GITHUB_OUTPUT
-        echo "next=v${NEXT}" >> $GITHUB_OUTPUT
-        echo "should_release=$([[ "${CURRENT}" != "v${NEXT}" ]] && echo "true" || echo "false")" >> $GITHUB_OUTPUT
+      uses: ietf-tools/semver-action@v1
+      with:
+        token: ${{ github.token }}
+        branch: main
         
     - name: Create release
-      if: steps.version.outputs.should_release == 'true'
+      if: steps.version.outputs.nextStrict != ''
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
@@ -70,8 +62,8 @@ jobs:
         GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o tmux-mcp-server-darwin-arm64 ./cmd/tmux-mcp-server
         
         # Create GitHub release
-        gh release create ${{ steps.version.outputs.next }} \
-          --title "Release ${{ steps.version.outputs.next }}" \
+        gh release create ${{ steps.version.outputs.nextStrict }} \
+          --title "Release ${{ steps.version.outputs.nextStrict }}" \
           --notes "Automated release created from commit ${{ github.sha }}" \
           tmux-mcp-server-linux-amd64 \
           tmux-mcp-server-linux-arm64 \
