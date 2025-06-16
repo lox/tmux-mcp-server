@@ -3,6 +3,7 @@ package tmux
 import (
 	"fmt"
 	"os/exec"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -185,15 +186,31 @@ func mapToTmuxKey(cmd string) string {
 	return keyMap[cmd]
 }
 
+// stripAnsiCodes removes ANSI escape sequences from text
+func stripAnsiCodes(text string) string {
+	ansiRegex := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	return ansiRegex.ReplaceAllString(text, "")
+}
+
 // CapturePane captures the current screen content of a session by name
 func CapturePane(sessionName string) (string, error) {
+	return CapturePaneRaw(sessionName, true)
+}
+
+// CapturePaneRaw captures screen content with optional ANSI stripping
+func CapturePaneRaw(sessionName string, stripAnsi bool) (string, error) {
 	cmd := exec.Command("tmux", "capture-pane", "-t", sessionName, "-e", "-p")
 	output, err := cmd.Output()
 	if err != nil {
 		return "", fmt.Errorf("failed to capture screen: %v", err)
 	}
 
-	return string(output), nil
+	result := string(output)
+	if stripAnsi {
+		result = stripAnsiCodes(result)
+	}
+
+	return result, nil
 }
 
 // ListSessions returns list of active tmux sessions
